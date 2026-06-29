@@ -76,7 +76,7 @@ class MkaRecorderTest : ShouldSpec() {
         context("Record using MediaJsonMkaRecorder") {
             val directory = Files.createTempDirectory("MediaJsonMkaRecorderTest").toFile()
             val mkaFile = "$directory/recording.mka"
-            val recorder = MediaJsonMkaRecorder(directory, logger)
+            val recorder = MediaJsonMkaRecorder(directory, logger, "test-meeting")
             runOnce(
                 "/sample-stereo.json",
                 mkaFile,
@@ -90,7 +90,7 @@ class MkaRecorderTest : ShouldSpec() {
 
                 val directory = Files.createTempDirectory("MediaJsonMkaRecorderTest").toFile()
                 val mkaFile = "$directory/recording.mka"
-                val recorder = MediaJsonMkaRecorder(directory, logger)
+                val recorder = MediaJsonMkaRecorder(directory, logger, "test-meeting")
                 runOnce(
                     "/sample-gap.json",
                     mkaFile,
@@ -105,7 +105,7 @@ class MkaRecorderTest : ShouldSpec() {
         context("Test number of tracks") {
             val directory = Files.createTempDirectory("MediaJsonMkaRecorderTest").toFile()
             val mkaFile = "$directory/recording.mka"
-            val recorder = MediaJsonMkaRecorder(directory, logger)
+            val recorder = MediaJsonMkaRecorder(directory, logger, "test-meeting")
             val sample = "/sample-stereo.json"
             val times = 500
 

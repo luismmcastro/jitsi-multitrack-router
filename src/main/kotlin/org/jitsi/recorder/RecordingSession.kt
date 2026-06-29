@@ -22,6 +22,9 @@ import org.jitsi.mediajson.PingEvent
 import org.jitsi.mediajson.PongEvent
 import org.jitsi.mediajson.SessionEndEvent
 import org.jitsi.mediajson.TranscriptionResultEvent
+import org.jitsi.recorder.live.AudioFrameSink
+import org.jitsi.recorder.live.NoopAudioFrameSink
+import org.jitsi.recorder.live.WebSocketAudioFrameSink
 import org.jitsi.utils.logging2.createLogger
 import java.io.File
 import org.jitsi.recorder.RecorderMetrics.Companion.instance as metrics
@@ -35,10 +38,35 @@ class RecordingSession(private val meetingId: String) {
         metrics.currentSessions.inc()
     }
 
+    private val audioFrameSink: AudioFrameSink = if (Config.liveForwardEnabled) {
+        WebSocketAudioFrameSink(
+            url = Config.liveForwardUrl,
+            authToken = Config.liveForwardAuthToken.ifBlank { null },
+            failOnError = Config.liveForwardFailOnError,
+            maxQueueSize = Config.liveForwardMaxQueueSize,
+            parentLogger = logger
+        )
+    } else {
+        NoopAudioFrameSink()
+    }
+
     private val mediaJsonRecorder = if (Config.recordingFormat == RecordingFormat.MKA) {
-        MediaJsonMkaRecorder(directory, logger)
+        MediaJsonMkaRecorder(
+            directory = directory,
+            parentLogger = logger,
+            meetingId = meetingId,
+            audioFrameSink = audioFrameSink,
+            recordingEnabled = Config.recordingEnabled
+        )
     } else {
         MediaJsonJsonRecorder(directory)
+    }
+
+    init {
+        audioFrameSink.onSessionStart(meetingId)
+        if (!Config.recordingEnabled && !Config.liveForwardEnabled) {
+            logger.warn("Neither recording nor live forwarding is enabled. Events will be received but not processed.")
+        }
     }
 
     fun processText(text: String): String? {
@@ -59,9 +87,13 @@ class RecordingSession(private val meetingId: String) {
 
     fun stop() {
         logger.info("Stopping")
-        mediaJsonRecorder.stop()
-        metrics.currentSessions.dec()
-        finalize()
+        try {
+            mediaJsonRecorder.stop()
+        } finally {
+            audioFrameSink.close()
+            metrics.currentSessions.dec()
+            finalize()
+        }
     }
 
     private fun finalize() {

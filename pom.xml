@@ -52,6 +52,26 @@
       <artifactId>ktor-server-websockets-jvm</artifactId>
       <version>${ktor.version}</version>
     </dependency>
+    <dependency>
+      <groupId>io.ktor</groupId>
+      <artifactId>ktor-client-core-jvm</artifactId>
+      <version>${ktor.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>io.ktor</groupId>
+      <artifactId>ktor-client-cio-jvm</artifactId>
+      <version>${ktor.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>io.ktor</groupId>
+      <artifactId>ktor-client-websockets-jvm</artifactId>
+      <version>${ktor.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.jetbrains.kotlinx</groupId>
+      <artifactId>kotlinx-serialization-json</artifactId>
+      <version>1.7.3</version>
+    </dependency>
     <!-- testing -->
     <dependency>
       <groupId>io.kotest</groupId>
@@ -67,9 +87,19 @@
         <artifactId>kotlin-maven-plugin</artifactId>
         <configuration>
           <jvmTarget>${maven.compiler.target}</jvmTarget>
+          <compilerPlugins>
+            <plugin>kotlinx-serialization</plugin>
+          </compilerPlugins>
         </configuration>
         <groupId>org.jetbrains.kotlin</groupId>
         <version>${kotlin.version}</version>
+        <dependencies>
+          <dependency>
+            <groupId>org.jetbrains.kotlin</groupId>
+            <artifactId>kotlin-maven-serialization</artifactId>
+            <version>${kotlin.version}</version>
+          </dependency>
+        </dependencies>
         <executions>
           <execution>
             <id>compile</id>

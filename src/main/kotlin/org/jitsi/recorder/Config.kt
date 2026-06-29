@@ -58,12 +58,43 @@ class Config {
             "$BASE.log-finalize-output".from(configSource)
         }
 
+        val liveForwardEnabled: Boolean by config {
+            "$BASE.live-forward.enabled".from(configSource)
+        }
+
+        val liveForwardUrl: String by config {
+            "$BASE.live-forward.url".from(configSource)
+        }
+
+        val liveForwardAuthToken: String by config {
+            "$BASE.live-forward.auth-token".from(configSource)
+        }
+
+        val recordingEnabled: Boolean by config {
+            "$BASE.live-forward.recording-enabled".from(configSource)
+        }
+
+        val liveForwardFailOnError: Boolean by config {
+            "$BASE.live-forward.fail-on-forward-error".from(configSource)
+        }
+
+        val liveForwardMaxQueueSize: Int by config {
+            "$BASE.live-forward.max-queue-size".from(configSource)
+        }
+
+
         override fun toString(): String = """
             port: $port
             recordingDirectory: $recordingDirectory
             recordingFormat: $recordingFormat
             maxGapDuration: $maxGapDuration
             finalizeScript: $finalizeScript
+            liveForwardEnabled: $liveForwardEnabled
+            liveForwardUrl: $liveForwardUrl
+            liveForwardAuthToken: $liveForwardAuthToken
+            recordingEnabled: $recordingEnabled
+            liveForwardFailOnError: $liveForwardFailOnError
+            liveForwardMaxQueueSize: $liveForwardMaxQueueSize
         """.trimIndent()
     }
 }

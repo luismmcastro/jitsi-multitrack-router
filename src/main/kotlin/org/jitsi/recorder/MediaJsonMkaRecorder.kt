@@ -20,6 +20,8 @@ package org.jitsi.recorder
 import org.jitsi.mediajson.Event
 import org.jitsi.mediajson.MediaEvent
 import org.jitsi.mediajson.StartEvent
+import org.jitsi.recorder.live.AudioFrameSink
+import org.jitsi.recorder.live.NoopAudioFrameSink
 import org.jitsi.recorder.opus.GapTooLargeException
 import org.jitsi.recorder.opus.OpusPacket
 import org.jitsi.recorder.opus.PacketLossConcealmentInserter
@@ -35,10 +37,16 @@ import org.jitsi.recorder.RecorderMetrics.Companion.instance as metrics
 /**
  * Record MediaJson events into a Matroska file.
  */
-class MediaJsonMkaRecorder(directory: File, parentLogger: Logger) : MediaJsonRecorder() {
+class MediaJsonMkaRecorder(
+    directory: File,
+    parentLogger: Logger,
+    private val meetingId: String,
+    private val audioFrameSink: AudioFrameSink = NoopAudioFrameSink(),
+    private val recordingEnabled: Boolean = true
+) : MediaJsonRecorder() {
     private val logger: Logger = parentLogger.createChildLogger(this.javaClass.name)
 
-    private val mkaRecorder = MkaRecorder(directory, logger)
+    private val mkaRecorder: MkaRecorder? = if (recordingEnabled) MkaRecorder(directory, logger) else null
     private var lastSequenceNumber = -1
 
     val queue = EventQueue {
@@ -83,8 +91,11 @@ class MediaJsonMkaRecorder(directory: File, parentLogger: Logger) : MediaJsonRec
                         mkaRecorder,
                         event.start.tag,
                         event.start.customParameters?.endpointId,
+                        meetingId,
+                        audioFrameSink,
                         logger
                     )
+                    audioFrameSink.onTrackStart(meetingId, event.start.tag, event.start.customParameters?.endpointId)
                 }
             }
 
@@ -99,13 +110,17 @@ class MediaJsonMkaRecorder(directory: File, parentLogger: Logger) : MediaJsonRec
                 } catch (e: GapTooLargeException) {
                     logger.info("Large gap encountered (${e.gapDuration}), resetting track.")
                     metrics.trackResets.inc()
+                    audioFrameSink.onTrackEnd(meetingId, event.media.tag, trackRecorder.endpointId)
                     TrackRecorder(
                         mkaRecorder,
                         event.media.tag,
                         trackRecorder.endpointId,
+                        meetingId,
+                        audioFrameSink,
                         logger
                     ).let {
                         trackRecorders[event.media.tag] = it
+                        audioFrameSink.onTrackStart(meetingId, event.media.tag, trackRecorder.endpointId)
                         it.addPacket(event)
                     }
                 }
@@ -117,14 +132,17 @@ class MediaJsonMkaRecorder(directory: File, parentLogger: Logger) : MediaJsonRec
     override fun stop() {
         logger.info("Stopping.")
         queue.close()
-        mkaRecorder.close()
+        audioFrameSink.onSessionEnd(meetingId)
+        mkaRecorder?.close()
     }
 }
 
 private class TrackRecorder(
-    private val mkaRecorder: MkaRecorder,
+    private val mkaRecorder: MkaRecorder?,
     private val trackName: String,
     val endpointId: String?,
+    private val meetingId: String,
+    private val audioFrameSink: AudioFrameSink,
     parentLogger: Logger
 ) {
     private val logger: Logger = parentLogger.createChildLogger(this.javaClass.name).apply {
@@ -135,7 +153,7 @@ private class TrackRecorder(
 
     init {
         logger.info("Starting new track $trackName")
-        mkaRecorder.startTrack(trackName, endpointId)
+        mkaRecorder?.startTrack(trackName, endpointId)
     }
 
     @OptIn(ExperimentalEncodingApi::class)
@@ -149,7 +167,7 @@ private class TrackRecorder(
 
         if (!stereo && opusPacket.toc().stereo()) {
             stereo = true
-            mkaRecorder.setTrackChannels(trackName, 2)
+            mkaRecorder?.setTrackChannels(trackName, 2)
             logger.info("Setting stereo=true.")
         }
 
@@ -158,10 +176,17 @@ private class TrackRecorder(
             val metric = if (i == plcAndPacket.size - 1) metrics.recordedMilliseconds else metrics.plcMilliseconds
             metric.addAndGet(packet.packet.duration())
 
-            mkaRecorder.addFrame(
+            mkaRecorder?.addFrame(
                 trackName,
                 packet.timestampMs,
                 packet.packet.data
+            )
+            audioFrameSink.onOpusFrame(
+                meetingId = meetingId,
+                trackName = trackName,
+                endpointId = endpointId,
+                timestampMs = packet.timestampMs,
+                opusPayload = packet.packet.data
             )
         }
     }
