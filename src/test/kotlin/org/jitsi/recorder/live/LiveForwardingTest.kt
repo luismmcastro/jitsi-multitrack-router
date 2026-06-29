@@ -10,7 +10,7 @@ import org.jitsi.mediajson.MediaFormat
 import org.jitsi.mediajson.Start
 import org.jitsi.mediajson.StartEvent
 import org.jitsi.recorder.MediaJsonMkaRecorder
-import org.jitsi.recorder.TestUtil
+import org.jitsi.recorder.setupInPlaceIoPool
 import org.jitsi.utils.logging2.createLogger
 import java.nio.file.Files
 import java.util.Base64
@@ -71,7 +71,7 @@ class CapturingAudioFrameSink : AudioFrameSink {
 // ---- Tests ----
 
 class LiveForwardingTest : ShouldSpec({
-    TestUtil.setupInPlaceIoPool()
+    setupInPlaceIoPool()
 
     context("MediaJsonMkaRecorder with in-memory AudioFrameSink") {
         should("call onTrackStart and onOpusFrame when processing StartEvent + MediaEvent") {
@@ -104,7 +104,7 @@ class LiveForwardingTest : ShouldSpec({
                     2,
                     Media(
                         "audio-track-1",
-                        "0",
+                        0,
                         960L,
                         payloadBase64
                     )
