@@ -28,6 +28,10 @@ import java.util.concurrent.ConcurrentHashMap
 class DeepgramAudioFrameSink(
     private val apiKey: String,
     private val model: String,
+    private val language: String,
+    private val interimResults: Boolean,
+    private val endpointing: Int,
+    private val sessionStartTimeMs: Long,
     parentLogger: Logger
 ) : AudioFrameSink {
     data class TrackSession(val job: Job, val channel: SendChannel<ByteArray>)
@@ -52,7 +56,7 @@ class DeepgramAudioFrameSink(
 
         val job = scope.launch {
             try {
-                val url = "wss://api.deepgram.com/v1/listen?encoding=opus&sample_rate=48000&channels=1&model=$model"
+                val url = "wss://api.deepgram.com/v1/listen?encoding=opus&sample_rate=48000&channels=1&model=$model&language=$language&interim_results=$interimResults&endpointing=$endpointing"
                 client.webSocket(urlString = url, request = {
                     header(HttpHeaders.Authorization, "Token $apiKey")
                 }) {
@@ -83,13 +87,12 @@ class DeepgramAudioFrameSink(
                                     val text = frame.readText()
                                     try {
                                         val elem = json.parseToJsonElement(text)
-                                        val isFinal = try {
-                                            elem.jsonObject["is_final"]?.jsonPrimitive?.content?.toBoolean() ?: false
+                                        val speechFinal = try {
+                                            elem.jsonObject["speech_final"]?.jsonPrimitive?.content?.toBoolean() ?: false
                                         } catch (_: Throwable) {
                                             false
                                         }
-                                        if (!isFinal) continue
-                                        // extract transcript
+                                        if (!speechFinal) continue
                                         var transcript: String? = null
                                         try {
                                             val channelObj = elem.jsonObject["channel"]?.jsonObject
@@ -100,7 +103,8 @@ class DeepgramAudioFrameSink(
                                         }
                                         if (!transcript.isNullOrBlank()) {
                                             val participant = endpointId ?: trackName
-                                            println("[Transcription] meetingId=$meetingId participant=$participant: $transcript")
+                                            val relativeMs = System.currentTimeMillis() - sessionStartTimeMs
+                                            println("[Transcription] meetingId=$meetingId participant=$participant t=${relativeMs}ms: $transcript")
                                         }
                                     } catch (t: Throwable) {
                                         logger.warn("Failed to parse Deepgram message for track=$trackName: ${t.message}")

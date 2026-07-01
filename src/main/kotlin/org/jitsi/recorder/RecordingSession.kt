@@ -38,10 +38,16 @@ class RecordingSession(private val meetingId: String) {
         metrics.currentSessions.inc()
     }
 
+    private val sessionStartTimeMs = System.currentTimeMillis()
+
     private val audioFrameSink: AudioFrameSink = if (Config.deepgramEnabled) {
         DeepgramAudioFrameSink(
             apiKey = Config.deepgramApiKey,
             model = Config.deepgramModel,
+            language = Config.deepgramLanguage,
+            interimResults = Config.deepgramInterimResults,
+            endpointing = Config.deepgramEndpointing,
+            sessionStartTimeMs = sessionStartTimeMs,
             parentLogger = logger
         )
     } else {

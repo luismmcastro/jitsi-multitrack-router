@@ -53,6 +53,18 @@ class Config {
             "$BASE.deepgram.model".from(configSource)
         }
 
+        val deepgramLanguage: String by config {
+            "$BASE.deepgram.language".from(configSource)
+        }
+
+        val deepgramInterimResults: Boolean by config {
+            "$BASE.deepgram.interim-results".from(configSource)
+        }
+
+        val deepgramEndpointing: Int by config {
+            "$BASE.deepgram.endpointing".from(configSource)
+        }
+
         val recordingEnabled: Boolean by config {
             "$BASE.recording.enabled".from(configSource)
         }
@@ -68,6 +80,9 @@ class Config {
             deepgramEnabled: $deepgramEnabled
             deepgramApiKey: $deepgramApiKey
             deepgramModel: $deepgramModel
+            deepgramLanguage: $deepgramLanguage
+            deepgramInterimResults: $deepgramInterimResults
+            deepgramEndpointing: $deepgramEndpointing
         """.trimIndent()
     }
 }
