@@ -84,7 +84,7 @@ class DeepgramAudioFrameSink(
                                     try {
                                         val elem = json.parseToJsonElement(text)
                                         val isFinal = try {
-                                            elem.jsonObject["is_final"]?.jsonPrimitive?.boolean ?: false
+                                            elem.jsonObject["is_final"]?.jsonPrimitive?.content?.toBoolean() ?: false
                                         } catch (_: Throwable) {
                                             false
                                         }
