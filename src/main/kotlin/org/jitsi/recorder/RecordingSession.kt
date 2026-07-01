@@ -24,7 +24,7 @@ import org.jitsi.mediajson.SessionEndEvent
 import org.jitsi.mediajson.TranscriptionResultEvent
 import org.jitsi.recorder.live.AudioFrameSink
 import org.jitsi.recorder.live.NoopAudioFrameSink
-import org.jitsi.recorder.live.WebSocketAudioFrameSink
+import org.jitsi.recorder.live.DeepgramAudioFrameSink
 import org.jitsi.utils.logging2.createLogger
 import java.io.File
 import org.jitsi.recorder.RecorderMetrics.Companion.instance as metrics
@@ -38,12 +38,10 @@ class RecordingSession(private val meetingId: String) {
         metrics.currentSessions.inc()
     }
 
-    private val audioFrameSink: AudioFrameSink = if (Config.liveForwardEnabled) {
-        WebSocketAudioFrameSink(
-            url = Config.liveForwardUrl,
-            authToken = Config.liveForwardAuthToken.ifBlank { null },
-            failOnError = Config.liveForwardFailOnError,
-            maxQueueSize = Config.liveForwardMaxQueueSize,
+    private val audioFrameSink: AudioFrameSink = if (Config.deepgramEnabled) {
+        DeepgramAudioFrameSink(
+            apiKey = Config.deepgramApiKey,
+            model = Config.deepgramModel,
             parentLogger = logger
         )
     } else {
@@ -64,8 +62,8 @@ class RecordingSession(private val meetingId: String) {
 
     init {
         audioFrameSink.onSessionStart(meetingId)
-        if (!Config.recordingEnabled && !Config.liveForwardEnabled) {
-            logger.warn("Neither recording nor live forwarding is enabled. Events will be received but not processed.")
+        if (!Config.recordingEnabled && !Config.deepgramEnabled) {
+            logger.warn("Neither recording nor Deepgram transcription is enabled. Events will be received but not processed.")
         }
     }
 
