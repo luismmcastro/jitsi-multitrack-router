@@ -104,7 +104,7 @@ class DeepgramAudioFrameSink(
                                         if (!transcript.isNullOrBlank()) {
                                             val participant = endpointId ?: trackName
                                             val relativeMs = System.currentTimeMillis() - sessionStartTimeMs
-                                            println("[Transcription] meetingId=$meetingId participant=$participant t=${relativeMs}ms: $transcript")
+                                            logger.info("[Transcription] meetingId=$meetingId participant=$participant t=${relativeMs}ms: $transcript")
                                         }
                                     } catch (t: Throwable) {
                                         logger.warn("Failed to parse Deepgram message for track=$trackName: ${t.message}")
