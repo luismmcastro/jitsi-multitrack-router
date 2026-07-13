@@ -1,20 +1,3 @@
-/*
- * Jitsi Multi Track Recorder
- *
- * Copyright @ 2024-Present 8x8, Inc.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 package org.jitsi.recorder
 
 import org.jitsi.mediajson.Event
@@ -25,7 +8,9 @@ import org.jitsi.mediajson.TranscriptionResultEvent
 import org.jitsi.recorder.live.AudioFrameSink
 import org.jitsi.recorder.live.NoopAudioFrameSink
 import org.jitsi.recorder.live.DeepgramAudioFrameSink
+import org.jitsi.recorder.live.SessionIntelligenceClient
 import org.jitsi.utils.logging2.createLogger
+import kotlinx.coroutines.runBlocking
 import java.io.File
 import org.jitsi.recorder.RecorderMetrics.Companion.instance as metrics
 
@@ -40,6 +25,11 @@ class RecordingSession(private val meetingId: String) {
 
     private val sessionStartTimeMs = System.currentTimeMillis()
 
+    private val sessionIntelligenceClient: SessionIntelligenceClient? =
+        Config.sessionIntelligenceBaseUrl?.let { baseUrl ->
+            SessionIntelligenceClient(baseUrl = baseUrl, parentLogger = logger)
+        }
+
     private val audioFrameSink: AudioFrameSink = if (Config.deepgramEnabled) {
         DeepgramAudioFrameSink(
             apiKey = Config.deepgramApiKey,
@@ -48,7 +38,8 @@ class RecordingSession(private val meetingId: String) {
             interimResults = Config.deepgramInterimResults,
             endpointing = Config.deepgramEndpointing,
             sessionStartTimeMs = sessionStartTimeMs,
-            parentLogger = logger
+            parentLogger = logger,
+            sessionIntelligenceClient = sessionIntelligenceClient
         )
     } else {
         NoopAudioFrameSink()
@@ -97,6 +88,7 @@ class RecordingSession(private val meetingId: String) {
             audioFrameSink.close()
             metrics.currentSessions.dec()
             finalize()
+            sessionIntelligenceClient?.close()
         }
     }
 
@@ -144,6 +136,13 @@ class RecordingSession(private val meetingId: String) {
                 } else {
                     logger.info("Finalize script completed successfully")
                 }
+            }
+        }
+
+        sessionIntelligenceClient?.let { client ->
+            logger.info("Calling session intelligence finalize endpoint for meetingId=$meetingId")
+            runBlocking {
+                client.postFinalize(meetingId)
             }
         }
     }

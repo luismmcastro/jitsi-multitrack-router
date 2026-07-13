@@ -27,6 +27,7 @@ import kotlinx.serialization.json.jsonPrimitive
 import org.jitsi.utils.logging2.Logger
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
+import java.time.Instant
 import java.util.concurrent.ConcurrentHashMap
 
 class DeepgramAudioFrameSink(
@@ -36,7 +37,8 @@ class DeepgramAudioFrameSink(
     private val interimResults: Boolean,
     private val endpointing: Int,
     private val sessionStartTimeMs: Long,
-    parentLogger: Logger
+    parentLogger: Logger,
+    private val sessionIntelligenceClient: SessionIntelligenceClient? = null
 ) : AudioFrameSink {
     data class TrackSession(
         val job: Job,
@@ -74,10 +76,22 @@ class DeepgramAudioFrameSink(
 
                 val participant = endpointId ?: trackName
                 val relativeMs = System.currentTimeMillis() - sessionStartTimeMs
+                val transcriptionTime = Instant.ofEpochMilli(System.currentTimeMillis()).toString()
 
                 logger.info(
                     "[Transcription] meetingId=$meetingId participant=$participant track=$trackName reason=$reason t=${relativeMs}ms: $finalText"
                 )
+
+                sessionIntelligenceClient?.let { siClient ->
+                    scope.launch {
+                        siClient.postTranscription(
+                            meetingId = meetingId,
+                            participantId = participant,
+                            transcriptionTime = transcriptionTime,
+                            text = finalText
+                        )
+                    }
+                }
 
                 transcriptBuffer.clear()
             }
@@ -334,7 +348,7 @@ class DeepgramAudioFrameSink(
                         session.job.cancelAndJoin()
                     }
                 }
-            } catch (_: Throwable) {
+            } catch (t: Throwable) {
                 try {
                     session.job.cancel()
                 } catch (_: Throwable) {
