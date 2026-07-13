@@ -41,6 +41,10 @@ class Config {
             "$BASE.session-intelligence.base-url".from(configSource)
         }
 
+        val sessionIntelligenceToken: String? by optionalconfig {
+            "$BASE.session-intelligence.token".from(configSource)
+        }
+
         val logFinalizeOutput: Boolean by config {
             "$BASE.log-finalize-output".from(configSource)
         }
@@ -80,6 +84,7 @@ class Config {
             maxGapDuration: $maxGapDuration
             finalizeScript: $finalizeScript
             sessionIntelligenceBaseUrl: $sessionIntelligenceBaseUrl
+            sessionIntelligenceToken: $sessionIntelligenceToken
             logFinalizeOutput: $logFinalizeOutput
             recordingEnabled: $recordingEnabled
             deepgramEnabled: $deepgramEnabled

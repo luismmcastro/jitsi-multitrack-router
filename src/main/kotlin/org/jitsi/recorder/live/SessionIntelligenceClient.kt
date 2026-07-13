@@ -13,7 +13,8 @@ import org.jitsi.utils.logging2.Logger
 
 class SessionIntelligenceClient(
     private val baseUrl: String,
-    parentLogger: Logger
+    parentLogger: Logger,
+    private val token: String? = null
 ) {
     private val logger: Logger = parentLogger.createChildLogger(this.javaClass.name)
     private val client = HttpClient(CIO)
@@ -34,6 +35,9 @@ class SessionIntelligenceClient(
             val response: HttpResponse = client.post(url) {
                 setBody(body)
                 header(HttpHeaders.ContentType, ContentType.Application.Json.toString())
+                token?.takeIf { it.isNotBlank() }?.let {
+                    header(HttpHeaders.Authorization, "Bearer $it")
+                }
             }
             if (!response.status.isSuccess()) {
                 logger.warn("postTranscription returned non-success status: ${response.status}")
@@ -50,6 +54,9 @@ class SessionIntelligenceClient(
             val response: HttpResponse = client.post(url) {
                 setBody(body)
                 header(HttpHeaders.ContentType, ContentType.Application.Json.toString())
+                token?.takeIf { it.isNotBlank() }?.let {
+                    header(HttpHeaders.Authorization, "Bearer $it")
+                }
             }
             if (!response.status.isSuccess()) {
                 logger.warn("postFinalize returned non-success status: ${response.status}")

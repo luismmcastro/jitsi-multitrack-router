@@ -27,7 +27,7 @@ class RecordingSession(private val meetingId: String) {
 
     private val sessionIntelligenceClient: SessionIntelligenceClient? =
         Config.sessionIntelligenceBaseUrl?.let { baseUrl ->
-            SessionIntelligenceClient(baseUrl = baseUrl, parentLogger = logger)
+            SessionIntelligenceClient(baseUrl = baseUrl, parentLogger = logger, token = Config.sessionIntelligenceToken)
         }
 
     private val audioFrameSink: AudioFrameSink = if (Config.deepgramEnabled) {
